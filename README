@@ -1,0 +1,16 @@
+Media Mouse
+This program turns a wireless mouse (or any mouse, however a wired mouse would be rather useless) into a remote control for your media player.
+
+Installation:
+python setup.py install
+
+Command Line Usage:
+mediamouse [media player]
+Where [media player] is either banshee or amarok
+
+Usage:
+Right-Click - Next Song
+Left-Click - Previous Song
+Mousewheel-Up - Volume Up
+Mousewheel-Down - Volume Down
+Escape - Quit Program

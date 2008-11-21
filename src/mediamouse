@@ -1,0 +1,121 @@
+#! /usr/bin/env python
+
+# This program is distributed under a GPL license
+# a copy of this license can be obtained from
+# http://www.gnu.org/licenses/gpl-2.0.txt
+# Copyright 2008 Daniel Roberts
+
+import pygtk
+pygtk.require('2.0')
+import gtk
+
+from os import environ
+
+from sys import argv as args
+
+from media_mouse.banshee import Banshee
+from media_mouse.amarok import Amarok
+
+class Mouse(object):
+	Left = 0
+	Right = 1
+	Middle = 2
+
+	@staticmethod
+	def get(event):
+		if event.button == 1: return Mouse.Left
+		elif event.button == 3: return Mouse.Right
+		else: return Mouse.Middle
+
+	@staticmethod
+	def primary(button):
+		if button in (Mouse.Left, Mouse.Right): return True
+		else: return False
+
+	@staticmethod
+	def other(button):
+		if button == Mouse.Left: return Mouse.Right
+		elif button == Mouse.Right: return Mouse.Left
+		else: raise ValueError("other() needs either Mouse.Right or Mouse.Left")
+
+class Main(object):
+	def __init__(self, player):
+		self.player = player
+
+		self.window = gtk.Window()
+
+		self.window.connect("delete-event", lambda widget, event: False)
+		self.window.connect("destroy", self.destroy)
+		self.window.connect("key-press-event", self.quit)
+
+		label = gtk.Label("Right-Click to go back\nLeft-Click to go forward\nEsc to quit")
+		eb = gtk.EventBox()
+		eb.set_above_child(True)
+
+		eb.connect('button-press-event', self.mouse_press)
+		eb.connect('button-release-event', self.mouse_release)
+		eb.connect('scroll-event', self.scroll)
+
+		eb.add(label)
+		self.window.add(eb)
+		self.window.show_all()
+		self.window.fullscreen()
+		self.mouse = [False, False]
+
+		try:
+			self.volume_speed = 0.1
+			self.volume_speed = float(environ["VOLUME_SENSITIVITY"])
+		except: pass
+
+	def destroy(self, widget): gtk.main_quit()
+
+	def scroll(self, widget, event):
+		try:
+			if event.direction == gtk.gdk.SCROLL_UP:
+				self.player.volume_up(self.volume_speed)
+			elif event.direction == gtk.gdk.SCROLL_DOWN:
+				self.player.volume_down(self.volume_speed)
+		except AttributeError, e: 
+			print "Player %s doesn't support changing volume..." % repr(self.player)
+			print str(e)
+
+	def mouse_press(self, widget, event):
+		button = Mouse.get(event)
+		if Mouse.primary(button):
+			other = Mouse.other(button)
+			if not self.mouse[other]:
+				self.mouse[button] = True
+			else:
+				self.mouse[other] = False
+		else: self.player.toggle_play()
+
+	def mouse_release(self, widget, event):
+		button = Mouse.get(event)
+		if not Mouse.primary(button): return
+		if self.mouse[button]:
+			if button == Mouse.Left:
+				self.player.prev()
+			elif button == Mouse.Right:
+				self.player.next()
+			self.mouse[button] = False
+
+	def quit(self, widget, event):
+		if event.keyval == gtk.keysyms.Escape:
+			self.window.destroy()
+
+players = {"banshee": Banshee, "amarok": Amarok}
+if __name__ == '__main__':
+	try:
+		player = players[args[1]]()
+	except IndexError, e:
+		print "Usage: mediamouse [media player]"
+		print "where [media player] is one of %s" % ' '.join(players.keys())
+		exit(-1)
+	except KeyError, e:
+		print "Unknown player %s, supported players are %s" % (
+			args[1], ' '.join(players.keys())
+			)
+		exit(-1)
+
+	main = Main(player)
+	gtk.main()
