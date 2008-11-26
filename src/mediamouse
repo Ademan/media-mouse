@@ -114,13 +114,20 @@ class Main(object):
 			self.window.destroy()
 
 players = {"banshee": Banshee, "amarok": Amarok}
+player_names = players.keys()
+
 if __name__ == '__main__':
 	try:
 		player = players[args[1]]()
 	except IndexError, e:
-		print "Usage: mediamouse [media player]"
-		print "where [media player] is one of %s" % ' '.join(players.keys())
-		exit(-1)
+		players = filter(lambda player: player.is_active(), players.itervalues())
+
+		if len(players) > 1: 
+			print "Usage: mediamouse [media player]"
+			print "where [media player] is one of %s" % ' '.join(player_names)
+			exit(-1)
+		else:
+			player = players[0]()
 	except KeyError, e:
 		print "Unknown player %s, supported players are %s" % (
 			args[1], ' '.join(players.keys())

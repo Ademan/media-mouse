@@ -15,15 +15,34 @@
 
 class Amarok(object):
 	dcop = None
-	def __init__(self):
-		if not Amarok.dcop:
-			Amarok.dcop = __import__("dcop")
-		dcop = Amarok.dcop
+	class AttachError(EnvironmentError):
+		pass #maybe include useful information... nah...
 
-		self.client = dcop.DCOPClient()
-		self.player = dcop.DCOPRef("amarok", "player")
-		self.player.setDCOPClient(self.client)
-		self.client.attach()
+	@staticmethod
+	def import_dcop():
+ 		if not Amarok.dcop:
+			Amarok.dcop = __import__("dcop")
+		return Amarok.dcop
+
+	@staticmethod
+	def client_player():
+		dcop = Amarok.import_dcop()
+		client = dcop.DCOPClient()
+		player = dcop.DCOPRef("amarok", "player")
+		player.setDCOPClient(client)
+		if not client.attach(): raise Amarok.AttachError()
+		return client, player
+	@staticmethod
+	def is_active():
+		try:
+			Amarok.client_player()
+		except Amarok.AttachError, e: return False
+		else: return True
+	def __init__(self):
+		dcop = Amarok.import_dcop()
+		self.client, self.player = Amarok.client_player()
+		#TODO: handle attach error in this case?
+
 	def next(self): self.player.call("next()")
 	def prev(self): self.player.call("prev()")
 

@@ -20,10 +20,24 @@ class Banshee(object):
 	volume_base = 0
 	volume_range = 100
 	dbus = None
-	def __init__(self):
+
+	@staticmethod
+	def import_dbus():
 		if not Banshee.dbus:
 			Banshee.dbus = __import__("dbus")
-		dbus = Banshee.dbus
+		return Banshee.dbus
+
+	@staticmethod
+	def is_active():
+		dbus = Banshee.import_dbus()
+
+		session_bus = dbus.SessionBus()
+		bus = session_bus.get_object("org.freedesktop.DBus", "/org/freedesktop/DBus")
+
+		return bus.NameHasOwner(Banshee.bus_name)
+
+	def __init__(self):
+		dbus = Banshee.import_dbus()
 
 		self.bus = bus = dbus.SessionBus()
 
